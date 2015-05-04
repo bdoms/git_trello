@@ -1,0 +1,9 @@
+#!/usr/bin/python
+from git_trello import GitTrelloHook
+hook = GitTrelloHook(
+    api_key='API_KEY',
+    oauth_token='OAUTH_TOKEN',
+    board_id='BOARD_ID',
+    list_id='LIST_ID'
+)
+hook.pre_push()
