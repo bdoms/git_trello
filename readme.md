@@ -77,6 +77,13 @@ Note that `list_name` is the case sensitive display name at the top of the list.
 By default printing is suppressed.
 Set `verbose` to `True` to get more information about all the actions being taken.
 
+#### `strict`
+
+By default if a commit does not contain a card number or that number can't be found on Trello no action is taken.
+Set `strict` to `True` to make the push operation abort instead.
+This can useful for enforcing strict standards like "all commits must reference a card"
+or for allowing authors to ammend commits if they entered in an erroneous card number that doesn't exist.
+
 ## Credits
 
 Inspired in part by [a similar Ruby post-recieve hook](https://github.com/zmilojko/git-trello),

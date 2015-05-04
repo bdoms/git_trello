@@ -11,7 +11,7 @@ CARD = re.compile('#([0-9]+)')
 
 class GitTrelloHook(object):
 
-    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', verbose=False):
+    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', verbose=False, strict=False):
         # NOTE that although required these are not positional arguments so that someone can glance at the hook file
         #      and know exactly what each thing is because it's a named argument
         if not api_key: sys.exit('Trello: api_key is required - aborting.')
@@ -21,13 +21,13 @@ class GitTrelloHook(object):
         self.client = Trello(api_key, oauth_token, board_id)
         self.list_id = list_id
         self.verbose = verbose
+        self.strict = strict
+        self.base_url = ''
 
         # command line arguments;
         #hook_path = sys.arg[0]
         #remote_name = sys.argv[1]
         remote_url = sys.argv[2]
-
-        self.base_url = ''
 
         # github is the only supported remote for adding a link to the commit
         # but this would be trivial to extend to others
@@ -83,15 +83,21 @@ class GitTrelloHook(object):
                 if result:
                     card_id = result.group(1)
                 if not card_id:
+                    warning = 'Trello: ' + short_sha + ' no card number'
+                    if self.strict:
+                        return sys.exit(warning)
                     if self.verbose:
-                        print 'Trello: ' + short_sha + ' no card number'
+                        print warning
                     continue
 
                 # figure out the full card id
                 card = self.client.getCard(card_id)
                 if not card:
+                    warning = 'Trello: ' + short_sha + ' cannot find card #' + card_id
+                    if self.strict:
+                        return sys.exit(warning)
                     if self.verbose:
-                        print 'Trello: ' + short_sha + ' cannot find card #' + card_id
+                        print warning
                     continue
 
                 # comment on the card
