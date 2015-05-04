@@ -4,6 +4,7 @@ hook = GitTrelloHook(
     api_key='API_KEY',
     oauth_token='OAUTH_TOKEN',
     board_id='BOARD_ID',
-    list_id='LIST_ID'
+    list_id='LIST_ID',
+    verbose=False
 )
 hook.pre_push()

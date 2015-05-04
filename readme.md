@@ -36,11 +36,13 @@ Make sure that the import line will work correctly for where you put this projec
 Then replace all of the arguments in the hook with your own values.
 The specifics of where to get each of those are described below.
 
-### `api_key`
+### Required Arguments
+
+#### `api_key`
 
 This is found on [the Trello website](https://trello.com/app-key)
 
-### `board_name` and `board_id`
+#### `board_name` and `board_id`
 
 The name and ID for the board you want to access are found in the board URL, which is formatted like:
 
@@ -48,16 +50,18 @@ The name and ID for the board you want to access are found in the board URL, whi
 https://trello.com/b/[BOARD_ID]/[BOARD_NAME]
 ```
 
-### `oauth_token`
+#### `oauth_token`
 
 Now that you have the required info you need to generate a token
 by going to a URL in your browser that includes your `api_key` and `board_name`:
 
 `https://trello.com/1/authorize?response_type=token&scope=read,write&expiration=never&key=[API_KEY]&name=[BOARD_NAME]`
 
-### `list_id`
+### Optional Arguments
 
-The `list_id` is optional. If provided, cards will be moved to this list after commenting.
+#### `list_id`
+
+If provided, cards will be moved to this list after commenting.
 It is surprisingly hard to find a list's ID via the Trello interface,
 but easy to get via the API, so I built a helper function.
 To get the ID, simply call the provided `trello.py` file from the command line with the following arguments:
@@ -68,6 +72,10 @@ python trello.py api_key oauth_token board_id list_name
 
 Note that `list_name` is the case sensitive display name at the top of the list.
 
+#### `verbose`
+
+By default printing is suppressed.
+Set `verbose` to `True` to get more information about all the actions being taken.
 
 ## Credits
 

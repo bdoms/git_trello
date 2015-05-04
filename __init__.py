@@ -11,7 +11,7 @@ CARD = re.compile('#([0-9]+)')
 
 class GitTrelloHook(object):
 
-    def __init__(self, api_key='', oauth_token='', board_id='', list_id=''):
+    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', verbose=False):
         # NOTE that although required these are not positional arguments so that someone can glance at the hook file
         #      and know exactly what each thing is because it's a named argument
         if not api_key: sys.exit('Trello: api_key is required - aborting.')
@@ -20,6 +20,7 @@ class GitTrelloHook(object):
 
         self.client = Trello(api_key, oauth_token, board_id)
         self.list_id = list_id
+        self.verbose = verbose
 
         # command line arguments;
         #hook_path = sys.arg[0]
@@ -45,7 +46,8 @@ class GitTrelloHook(object):
         # if forcing assume that all the commits already exist
         # but probably now have new SHAs we can't detect so we don't want to update anything
         if forcing:
-            print 'Trello: force pushing skips modifying cards'
+            if self.verbose:
+                print 'Trello: force pushing skips modifying cards'
             return
 
         # stuff comes in on stdin, see http://git-scm.com/docs/githooks#_pre-push
@@ -81,17 +83,20 @@ class GitTrelloHook(object):
                 if result:
                     card_id = result.group(1)
                 if not card_id:
-                    print 'Trello: ' + short_sha + ' no card number'
+                    if self.verbose:
+                        print 'Trello: ' + short_sha + ' no card number'
                     continue
 
                 # figure out the full card id
                 card = self.client.getCard(card_id)
                 if not card:
-                    print 'Trello: ' + short_sha + ' cannot find card #' + card_id
+                    if self.verbose:
+                        print 'Trello: ' + short_sha + ' cannot find card #' + card_id
                     continue
 
                 # comment on the card
-                print 'Trello: ' + short_sha + ' commenting on card #' + card_id
+                if self.verbose:
+                    print 'Trello: ' + short_sha + ' commenting on card #' + card_id
                 comment = ''
                 if self.base_url:
                     comment += self.base_url + long_sha + '\n\n'
@@ -100,5 +105,6 @@ class GitTrelloHook(object):
 
                 # move the card
                 if self.list_id and card['idList'] != self.list_id:
-                    print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
+                    if self.verbose:
+                        print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
                     self.client.moveCard(card, self.list_id)
