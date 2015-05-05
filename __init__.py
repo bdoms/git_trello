@@ -75,6 +75,14 @@ class GitTrelloHook(object):
             
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
+
+                # list remote branches that contain this commit
+                branches = subprocess.check_output(['git', 'branch', '-r', '--contains', long_sha])
+                if branches:
+                    if self.verbose:
+                        print 'Trello: ' + short_sha + ' has already been pushed on another branch'
+                    continue
+
                 body = subprocess.check_output(['git', 'log', '--pretty=format:"%B"', '-n', '1', long_sha])
                 body = body[1:-1].strip() # body is surrounded by quotes (e.g. '"commit message"')
 
