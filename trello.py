@@ -69,11 +69,11 @@ class Trello(object):
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print 'Wrong number of arguments. Need api_key, oauth_token, board_id and board_name.'
+        print 'Wrong number of arguments. Need api_key, oauth_token, board_id and list_name.'
         sys.exit()
-    filename, api_key, oauth_token, board_id, board_name = sys.argv
+    filename, api_key, oauth_token, board_id, list_name = sys.argv
     client = Trello(api_key, oauth_token, board_id)
-    tlist = client.findList(board_name)
+    tlist = client.findList(list_name)
     if tlist:
         print 'List ID: ' + tlist['id']
     else:
