@@ -1,9 +1,8 @@
-import os
 import re
-import subprocess
 import sys
 
 from lib.trello import Trello
+from lib import git
 
 REPO = re.compile(':(.+)\.git')
 CARD = re.compile('#([0-9]+)')
@@ -39,13 +38,9 @@ class GitTrelloHook(object):
 
     def pre_push(self):
 
-        pid = os.getppid()
-        push_command = subprocess.check_output(['ps', '-ocommand=', '-p', str(pid)])
-        forcing = ('--force' in push_command or '-f' in push_command)
-
         # if forcing assume that all the commits already exist
         # but probably now have new SHAs we can't detect so we don't want to update anything
-        if forcing:
+        if git.pushForced():
             if self.verbose:
                 print 'Trello: force pushing skips modifying cards'
             return
@@ -70,21 +65,20 @@ class GitTrelloHook(object):
                 commit_range = remote_sha + '..' + local_sha
             
             # see http://git-scm.com/book/ch2-3.html for formatting details
-            output = subprocess.check_output(['git', 'log', '--pretty=format:"%H %h"', commit_range])
+            output = git.commitDetails('%H %h', commit_range)
             commits = output.replace('"', '').split('\n')
             
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
 
                 # list remote branches that contain this commit
-                branches = subprocess.check_output(['git', 'branch', '-r', '--contains', long_sha])
+                branches = git.remotesWithCommit(long_sha)
                 if branches:
                     if self.verbose:
                         print 'Trello: ' + short_sha + ' has already been pushed on another branch'
                     continue
 
-                body = subprocess.check_output(['git', 'log', '--pretty=format:"%B"', '-n', '1', long_sha])
-                body = body[1:-1].strip() # body is surrounded by quotes (e.g. '"commit message"')
+                body = git.commitBody(local_sha)
 
                 card_id = ''
                 result = CARD.search(body)

@@ -1,3 +1,6 @@
 [submodule "lib/trello"]
 	path = lib/trello
 	url = git@github.com:bdoms/trello.git
+[submodule "lib/git"]
+	path = lib/git
+	url = https://github.com/bdoms/git.git
