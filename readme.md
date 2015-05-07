@@ -34,43 +34,14 @@ Copy the `pre-push` file to your repo's `.git/hooks/pre-push`
 or integrate it with an existing file if you already have one.
 Make sure that the import line will work correctly for where you put this project.
 Then replace all of the arguments in the hook with your own values.
-The specifics of where to get each of those are described below.
-
-### Required Arguments
-
-#### `api_key`
-
-This is found on [the Trello website](https://trello.com/app-key)
-
-#### `board_name` and `board_id`
-
-The name and ID for the board you want to access are found in the board URL, which is formatted like:
-
-```
-https://trello.com/b/[BOARD_ID]/[BOARD_NAME]
-```
-
-#### `oauth_token`
-
-Now that you have the required info you need to generate a token
-by going to a URL in your browser that includes your `api_key` and `board_name`:
-
-`https://trello.com/1/authorize?response_type=token&scope=read,write&expiration=never&key=[API_KEY]&name=[BOARD_NAME]`
+The specifics of how to get the required values are in the readme of
+[the Trello submodule](https://github.com/bdoms/trello).
 
 ### Optional Arguments
 
 #### `list_id`
 
 If provided, cards will be moved to this list after commenting.
-It is surprisingly hard to find a list's ID via the Trello interface,
-but easy to get via the API, so I built a helper function.
-To get the ID, simply call the provided `trello.py` file from the command line with the following arguments:
-
-```bash
-python trello.py api_key oauth_token board_id list_name
-```
-
-Note that `list_name` is the case sensitive display name at the top of the list.
 
 #### `verbose`
 
