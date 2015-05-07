@@ -65,8 +65,7 @@ class GitTrelloHook(object):
                 commit_range = remote_sha + '..' + local_sha
             
             # see http://git-scm.com/book/ch2-3.html for formatting details
-            output = git.commitDetails('%H %h', commit_range)
-            commits = output.replace('"', '').split('\n')
+            commits = git.commitDetails('%H %h', commit_range)
             
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
