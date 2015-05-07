@@ -77,7 +77,7 @@ class GitTrelloHook(object):
                         print 'Trello: ' + short_sha + ' has already been pushed on another branch'
                     continue
 
-                body = git.commitBody(local_sha)
+                body = git.commitBody(long_sha)
 
                 card_id = ''
                 result = CARD.search(body)
