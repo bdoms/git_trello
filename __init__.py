@@ -3,7 +3,7 @@ import re
 import subprocess
 import sys
 
-from trello import Trello
+from lib.trello import Trello
 
 REPO = re.compile(':(.+)\.git')
 CARD = re.compile('#([0-9]+)')

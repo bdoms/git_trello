@@ -1,0 +1,3 @@
+[submodule "lib/trello"]
+	path = lib/trello
+	url = git@github.com:bdoms/trello.git
