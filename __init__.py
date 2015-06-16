@@ -114,4 +114,4 @@ class GitTrelloHook(object):
                 if self.list_id and card['idList'] != self.list_id:
                     if self.verbose:
                         print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
-                    self.client.moveCard(card, self.list_id)
+                    self.client.moveCard(card, self.list_id, pos='bottom')
