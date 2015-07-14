@@ -43,6 +43,14 @@ The specifics of how to get the required values are in the readme of
 
 If provided, cards will be moved to this list after commenting.
 
+#### `branch`
+
+By default all branches are considered valid,
+but if you specify one then only pushes for that branch are inspected.
+If you use a merging workflow then this is not necessary as commit hashes will remain consistent across branches.
+However, if you rebase then new hashes are generated and thus links to commits will be broken.
+For those using a rebasing strategy it's recommended that you specify `master` here.
+
 #### `verbose`
 
 By default printing is suppressed.

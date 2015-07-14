@@ -10,7 +10,7 @@ CARD = re.compile('#([0-9]+)')
 
 class GitTrelloHook(object):
 
-    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', verbose=False, strict=False):
+    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', branch='', verbose=False, strict=False):
         # NOTE that although required these are not positional arguments so that someone can glance at the hook file
         #      and know exactly what each thing is because it's a named argument
         if not api_key: sys.exit('Trello: api_key is required - aborting.')
@@ -19,6 +19,7 @@ class GitTrelloHook(object):
 
         self.client = Trello(api_key, oauth_token, board_id)
         self.list_id = list_id
+        self.branch = branch
         self.verbose = verbose
         self.strict = strict
         self.base_url = ''
@@ -37,6 +38,11 @@ class GitTrelloHook(object):
             self.base_url = 'https://github.com/' + user_repo + '/commit/'
 
     def pre_push(self):
+
+        if self.branch and git.currentBranch() != self.branch:
+            if self.verbose:
+                print 'Trello: pushing unspecified branch skips modifying cards'
+            return
 
         # if forcing assume that all the commits already exist
         # but probably now have new SHAs we can't detect so we don't want to update anything
@@ -70,12 +76,14 @@ class GitTrelloHook(object):
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
 
-                # list remote branches that contain this commit
-                branches = git.remotesWithCommit(long_sha)
-                if branches:
-                    if self.verbose:
-                        print 'Trello: ' + short_sha + ' has already been pushed on another branch'
-                    continue
+                # if there's a specified branch then we don't care if the commit was pushed somewhere else
+                if not self.branch:
+                    # list remote branches that contain this commit
+                    branches = git.remotesWithCommit(long_sha)
+                    if branches:
+                        if self.verbose:
+                            print 'Trello: ' + short_sha + ' has already been pushed on another branch'
+                        continue
 
                 body = git.commitBody(long_sha)
 
