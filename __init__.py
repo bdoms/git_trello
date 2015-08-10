@@ -57,7 +57,11 @@ class GitTrelloHook(object):
         # also note "If the foreign ref does not yet exist the <remote SHA-1> will be 0" (in fact 40 zeros for the full sha)
         z40 = '0' * 40
 
-        for line in sys.stdin:
+        # need to reverse the input so that the oldest commits are handled first
+        lines = [line for line in sys.stdin]
+        lines.reverse()
+
+        for line in lines:
             local_ref, local_sha, remote_ref, remote_sha = line.replace('\n', '').split(' ')
 
             if local_sha == z40 or local_sha == remote_sha:
