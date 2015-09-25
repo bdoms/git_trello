@@ -6,6 +6,7 @@ hook = GitTrelloHook(
     board_id='BOARD_ID',
     list_id='LIST_ID',
     verbose=False,
-    strict=False
+    strict=False,
+    force_override=False
 )
 hook.pre_push()

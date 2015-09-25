@@ -10,7 +10,9 @@ CARD = re.compile('#([0-9]+)')
 
 class GitTrelloHook(object):
 
-    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', branch='', verbose=False, strict=False):
+    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', branch='',
+        verbose=False, strict=False, force_override=False):
+
         # NOTE that although required these are not positional arguments so that someone can glance at the hook file
         #      and know exactly what each thing is because it's a named argument
         if not api_key: sys.exit('Trello: api_key is required - aborting.')
@@ -22,6 +24,7 @@ class GitTrelloHook(object):
         self.branch = branch
         self.verbose = verbose
         self.strict = strict
+        self.force_override = force_override
         self.base_url = ''
 
         # command line arguments;
@@ -39,14 +42,16 @@ class GitTrelloHook(object):
 
     def pre_push(self):
 
-        if self.branch and git.currentBranch() != self.branch:
+        current_branch = git.currentBranch()
+        if self.branch and current_branch != self.branch:
             if self.verbose:
                 print 'Trello: pushing unspecified branch skips modifying cards'
             return
 
         # if forcing assume that all the commits already exist
         # but probably now have new SHAs we can't detect so we don't want to update anything
-        if git.pushForced():
+        forced = git.pushForced()
+        if forced and not self.force_override:
             if self.verbose:
                 print 'Trello: force pushing skips modifying cards'
             return
@@ -60,6 +65,9 @@ class GitTrelloHook(object):
         # need to reverse the input so that the oldest commits are handled first
         lines = [line for line in sys.stdin]
         lines.reverse()
+
+        # list of card ID's that had old commits removed when force pushing
+        old_commits_removed = []
 
         for line in lines:
             local_ref, local_sha, remote_ref, remote_sha = line.replace('\n', '').split(' ')
@@ -83,7 +91,7 @@ class GitTrelloHook(object):
                 # if there's a specified branch then we don't care if the commit was pushed somewhere else
                 if not self.branch:
                     # list remote branches that contain this commit
-                    branches = git.remotesWithCommit(long_sha)
+                    branches = git.branchesWithCommit(long_sha, remote=True)
                     if branches:
                         if self.verbose:
                             print 'Trello: ' + short_sha + ' has already been pushed on another branch'
@@ -112,6 +120,37 @@ class GitTrelloHook(object):
                     if self.verbose:
                         print warning
                     continue
+
+                # remove previous commit messages on card if force pushed
+                if forced and self.force_override and card_id not in old_commits_removed:
+                    comments = self.client.getComments(card)
+                    commit_comments = []
+                    for comment in comments:
+                        text = comment['data']['text']
+                        if text.startswith(self.base_url) and '[#' + card_id + ']' in text:
+                            # we don't want to remove comments that contain valid commits
+                            # they won't get re-added as git is smart enough to not include those commits here
+                            # so parse out the sha and check to see if it exists anywhere before deleting this comment
+                            old_sha = text.split('\n')[0].rsplit('/', 1)[1]
+                            local_branches = git.branchesWithCommit(old_sha)
+                            if not local_branches:
+                                # even if it doesn't exist locally it's possible someone else added it on another branch
+                                remote_branches = git.branchesWithCommit(old_sha, remote=True)
+                                if not remote_branches:
+                                    commit_comments.append(comment)
+                                elif len(remote_branches) == 1:
+                                    # if the only remote branch is this one then the sha will disappear as soon as we push
+                                    remotes = git.remotes()
+                                    for remote in remotes:
+                                        if remote + '/' + current_branch in remote_branches:
+                                            commit_comments.append(comment)
+                                            break
+                    if commit_comments:
+                        if self.verbose:
+                            count = str(len(commit_comments))
+                            print 'Trello: ' + short_sha + ' deleting ' + count + ' previous comment(s) on card #' + card_id
+                        self.client.deleteComments(commit_comments)
+                    old_commits_removed.append(card_id)
 
                 # comment on the card
                 if self.verbose:

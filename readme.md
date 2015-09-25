@@ -48,8 +48,10 @@ If provided, cards will be moved to this list after commenting.
 By default all branches are considered valid,
 but if you specify one then only pushes for that branch are inspected.
 If you use a merging workflow then this is not necessary as commit hashes will remain consistent across branches.
-However, if you rebase then new hashes are generated and thus links to commits will be broken.
-For those using a rebasing strategy it's recommended that you specify `master` here.
+However, if you rebase then new hashes are generated and thus links to commits that no longer exist will be broken.
+Using this means you *must* push a commit on the specified branch for it to be modified in Trello,
+so it does not work very well with a process that uses things like pull requests.
+See `force_override` below for an alternate approach.
 
 #### `verbose`
 
@@ -62,6 +64,13 @@ By default if a commit does not contain a card number or that number can't be fo
 Set `strict` to `True` to make the push operation abort instead.
 This can useful for enforcing strict standards like "all commits must reference a card"
 or for allowing authors to ammend commits if they entered in an erroneous card number that doesn't exist.
+
+#### `force_override`
+
+By default force pushes are ignored. By setting `force_override` to `True` you can allow force pushes to modify cards.
+In this case old comments referencing commits that no longer exist will be deleted,
+and new comments will be made for the new hashes. This ensures that the links in Trello will remain up to date,
+but it makes the most requests and will take the longest amount of time.
 
 ## Credits
 
