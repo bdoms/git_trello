@@ -62,14 +62,10 @@ class GitTrelloHook(object):
         # also note "If the foreign ref does not yet exist the <remote SHA-1> will be 0" (in fact 40 zeros for the full sha)
         z40 = '0' * 40
 
-        # need to reverse the input so that the oldest commits are handled first
-        lines = [line for line in sys.stdin]
-        lines.reverse()
-
         # list of card ID's that had old commits removed when force pushing
         old_commits_removed = []
 
-        for line in lines:
+        for line in sys.stdin:
             local_ref, local_sha, remote_ref, remote_sha = line.replace('\n', '').split(' ')
 
             if local_sha == z40 or local_sha == remote_sha:
@@ -84,6 +80,9 @@ class GitTrelloHook(object):
             
             # see http://git-scm.com/book/ch2-3.html for formatting details
             commits = git.commitDetails('%H %h', commit_range)
+
+            # need to reverse the input so that the oldest commits are handled first
+            commits.reverse()
             
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
