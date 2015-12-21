@@ -72,6 +72,17 @@ In this case old comments referencing commits that no longer exist will be delet
 and new comments will be made for the new hashes. This ensures that the links in Trello will remain up to date,
 but it makes the most requests and will take the longest amount of time.
 
+#### `exhaustive`
+
+By default commits are checked newest first until one that has already been pushed to a remote branch is found.
+Processing then stops and does not continue to older commits. This greatly increases speed when pushing new branches.
+But with a merging workflow it means that older commits not yet pushed anywhere might be skipped.
+To ensure that all commits are always processed, set `exhaustive` to `True`,
+but note that this will cause the time for pushing a new branch to scale linearly with the total number of commits.
+
+Also note that this setting has no effect when a `branch` is specified,
+as remotes for other branches - whether containing a commit or not - are never inspected.
+
 ## Credits
 
 Inspired in part by [a similar Ruby post-recieve hook](https://github.com/zmilojko/git-trello),
