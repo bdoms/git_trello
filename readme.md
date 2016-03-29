@@ -53,6 +53,28 @@ Using this means you *must* push a commit on the specified branch for it to be m
 so it does not work very well with a process that uses things like pull requests.
 See `force_override` below for an alternate approach.
 
+#### `release_branch`
+
+If specified when you push this branch all cards from the specified `list_id` will be moved
+to a list made for cataloging a release. This is usually a new list created automatically,
+but if a list already exists with a name that matches exactly then these cards will be appended to that instead.
+Additionally, the cards returned by the `pre_push` method will be those moved to the release list,
+whether they had a commit attached to them or not.
+
+By default if this is not specified then the cards are never moved away from the `list_id`
+and no release list is ever made.
+
+#### `release_remote`
+
+By default all remotes are considered valid, but if you specify one here
+then moving cards to a release list will only happen if the push is being sent to this remote.
+For example, you would set this to `heroku` if that was your host.
+
+#### `release_name`
+
+Defaults to `%Y-%m-%d Release` with the local datetime interpolated via `strftime`.
+This is the name used for creating the release list.
+
 #### `verbose`
 
 By default printing is suppressed.

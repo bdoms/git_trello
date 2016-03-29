@@ -1,3 +1,4 @@
+import datetime
 import re
 import sys
 
@@ -10,8 +11,10 @@ CARD = re.compile('#([0-9]+)')
 
 class GitTrelloHook(object):
 
-    def __init__(self, api_key='', oauth_token='', board_id='', list_id='', branch='',
-        verbose=False, strict=False, force_override=False, exhaustive=False):
+    def __init__(self, api_key='', oauth_token='', board_id='', list_id='',
+        branch='', release_branch='', release_remote='',
+        release_name='%Y-%m-%d Release', verbose=False, strict=False,
+        force_override=False, exhaustive=False):
 
         # NOTE that although required these are not positional arguments so that someone can glance at the hook file
         #      and know exactly what each thing is because it's a named argument
@@ -22,6 +25,9 @@ class GitTrelloHook(object):
         self.client = Trello(api_key, oauth_token, board_id)
         self.list_id = list_id
         self.branch = branch
+        self.release_branch = release_branch
+        self.release_remote = release_remote
+        self.release_name = release_name
         self.verbose = verbose
         self.strict = strict
         self.force_override = force_override
@@ -65,6 +71,9 @@ class GitTrelloHook(object):
 
         # list of card ID's that had old commits removed when force pushing
         old_commits_removed = []
+
+        # list of cards that were actually modified
+        cards = []
 
         for line in sys.stdin:
             local_ref, local_sha, remote_ref, remote_sha = line.replace('\n', '').split(' ')
@@ -177,3 +186,17 @@ class GitTrelloHook(object):
                     if self.verbose:
                         print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
                     self.client.moveCard(card, self.list_id, pos='bottom')
+
+                cards.append(card)
+
+        if self.release_branch and current_branch == self.release_branch:
+            push_remote = git.pushRemote()
+            if not self.release_remote or push_remote == self.release_remote:
+                if self.verbose:
+                    print 'Trello: moving cards to new release list'
+                now = datetime.datetime.now()
+                release_name = now.strftime(self.release_name)
+                release_list = self.client.createList(release_name, self.list_id)
+                cards = self.client.moveCards(self.list_id, release_list['id'])
+
+        return cards
