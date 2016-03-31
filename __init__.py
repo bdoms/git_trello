@@ -6,7 +6,7 @@ from lib.trello import Trello
 from lib import git
 
 REPO = re.compile(':(.+)\.git')
-CARD = re.compile('#([0-9]+)')
+CARD = re.compile(r'\[(?P<action>wip)?\s?#(?P<card_id>\d{1,4})\]', re.I)
 
 
 class GitTrelloHook(object):
@@ -87,7 +87,7 @@ class GitTrelloHook(object):
                 commit_range = local_sha
             else:
                 commit_range = remote_sha + '..' + local_sha
-            
+
             # see http://git-scm.com/book/ch2-3.html for formatting details
             all_commits = commits = git.commitDetails('%H %h', commit_range)
 
@@ -113,16 +113,18 @@ class GitTrelloHook(object):
 
             # need to reverse the input so that the oldest commits are handled first
             commits.reverse()
-            
+
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
 
                 body = git.commitBody(long_sha)
 
                 card_id = ''
+                is_wip = False
                 result = CARD.search(body)
                 if result:
-                    card_id = result.group(1)
+                    card_id = result.group('card_id')
+                    is_wip = result.group('action') is not None
                 if not card_id:
                     warning = 'Trello: ' + short_sha + ' no card number'
                     if self.strict:
@@ -178,11 +180,11 @@ class GitTrelloHook(object):
                 comment = ''
                 if self.base_url:
                     comment += self.base_url + long_sha + '\n\n'
-                comment += body                
+                comment += body
                 self.client.addComment(card, comment)
 
                 # move the card
-                if self.list_id and card['idList'] != self.list_id:
+                if self.list_id and card['idList'] != self.list_id and not is_wip:
                     if self.verbose:
                         print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
                     self.client.moveCard(card, self.list_id, pos='bottom')
