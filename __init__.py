@@ -6,12 +6,10 @@ from lib.trello import Trello
 from lib import git
 
 REPO = re.compile(':(.+)\.git')
-CARD = re.compile('#([0-9]+)')
+CARD = re.compile(r'\[(?P<action>wip)?\s?#(?P<card_id>\d{1,4})\]', re.I)
 
 
 class GitTrelloHook(object):
-
-    CARD_ID_PATTERN = re.compile(r'\[(?P<action>wip)?\s?#(?P<card_id>\d{1,4})\]', re.I)
 
     def __init__(self, api_key='', oauth_token='', board_id='', list_id='',
         branch='', release_branch='', release_remote='',
@@ -122,9 +120,11 @@ class GitTrelloHook(object):
                 body = git.commitBody(long_sha)
 
                 card_id = ''
+                is_wip = False
                 result = CARD.search(body)
                 if result:
-                    card_id = result.group(1)
+                    card_id = result.group('card_id')
+                    is_wip = result.group('action') is not None
                 if not card_id:
                     warning = 'Trello: ' + short_sha + ' no card number'
                     if self.strict:
@@ -149,13 +149,7 @@ class GitTrelloHook(object):
                     commit_comments = []
                     for comment in comments:
                         text = comment['data']['text']
-                        match = self.CARD_ID_PATTERN.search(text)
-                        if (
-                            text.startswith(self.base_url)
-                            and match
-                            and match.group('card_id') == card_id
-                        ):
-                            card['is_wip'] = True if match.group('action') else False
+                        if text.startswith(self.base_url) and '[#' + card_id + ']' in text:
                             # we don't want to remove comments that contain valid commits
                             # they won't get re-added as git is smart enough to not include those commits here
                             # so parse out the sha and check to see if it exists anywhere before deleting this comment
@@ -190,7 +184,7 @@ class GitTrelloHook(object):
                 self.client.addComment(card, comment)
 
                 # move the card
-                if self.list_id and card['idList'] != self.list_id and not card.get('is_wip'):
+                if self.list_id and card['idList'] != self.list_id and not is_wip:
                     if self.verbose:
                         print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
                     self.client.moveCard(card, self.list_id, pos='bottom')
