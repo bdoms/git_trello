@@ -11,6 +11,8 @@ CARD = re.compile('#([0-9]+)')
 
 class GitTrelloHook(object):
 
+    CARD_ID_PATTERN = re.compile(r'\[(?P<action>wip)?\s?#(?P<card_id>\d{1,4})\]', re.I)
+
     def __init__(self, api_key='', oauth_token='', board_id='', list_id='',
         branch='', release_branch='', release_remote='',
         release_name='%Y-%m-%d Release', verbose=False, strict=False,
@@ -87,7 +89,7 @@ class GitTrelloHook(object):
                 commit_range = local_sha
             else:
                 commit_range = remote_sha + '..' + local_sha
-            
+
             # see http://git-scm.com/book/ch2-3.html for formatting details
             all_commits = commits = git.commitDetails('%H %h', commit_range)
 
@@ -113,7 +115,7 @@ class GitTrelloHook(object):
 
             # need to reverse the input so that the oldest commits are handled first
             commits.reverse()
-            
+
             for commit in commits:
                 long_sha, short_sha = commit.split(' ')
 
@@ -147,7 +149,13 @@ class GitTrelloHook(object):
                     commit_comments = []
                     for comment in comments:
                         text = comment['data']['text']
-                        if text.startswith(self.base_url) and '[#' + card_id + ']' in text:
+                        match = self.CARD_ID_PATTERN.search(text)
+                        if (
+                            text.startswith(self.base_url)
+                            and match
+                            and match.group('card_id') == card_id
+                        ):
+                            card['is_wip'] = True if match.group('action') else False
                             # we don't want to remove comments that contain valid commits
                             # they won't get re-added as git is smart enough to not include those commits here
                             # so parse out the sha and check to see if it exists anywhere before deleting this comment
@@ -178,11 +186,11 @@ class GitTrelloHook(object):
                 comment = ''
                 if self.base_url:
                     comment += self.base_url + long_sha + '\n\n'
-                comment += body                
+                comment += body
                 self.client.addComment(card, comment)
 
                 # move the card
-                if self.list_id and card['idList'] != self.list_id:
+                if self.list_id and card['idList'] != self.list_id and not card.get('is_wip'):
                     if self.verbose:
                         print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
                     self.client.moveCard(card, self.list_id, pos='bottom')
