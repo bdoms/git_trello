@@ -2,8 +2,8 @@ import datetime
 import re
 import sys
 
-from lib.trello import Trello
-from lib import git
+from .lib.trello import Trello
+from .lib import git
 
 REPO = re.compile(':(.+)\.git')
 CARD = re.compile(r'\[(?P<action>wip)?\s?#(?P<card_id>\d{1,4})\]', re.I)
@@ -52,7 +52,7 @@ class GitTrelloHook(object):
         current_branch = git.currentBranch()
         if self.branch and current_branch != self.branch:
             if self.verbose:
-                print 'Trello: pushing unspecified branch skips modifying cards'
+                print('Trello: pushing unspecified branch skips modifying cards')
             return
 
         # if forcing assume that all the commits already exist
@@ -60,7 +60,7 @@ class GitTrelloHook(object):
         forced = git.pushForced()
         if forced and not self.force_override:
             if self.verbose:
-                print 'Trello: force pushing skips modifying cards'
+                print('Trello: force pushing skips modifying cards')
             return
 
         # stuff comes in on stdin, see http://git-scm.com/docs/githooks#_pre-push
@@ -102,11 +102,11 @@ class GitTrelloHook(object):
                     if branches:
                         if self.exhaustive:
                             if self.verbose:
-                                print 'Trello: ' + short_sha + ' has already been pushed on another branch'
+                                print('Trello: ' + short_sha + ' has already been pushed on another branch')
                             continue
                         else:
                             if self.verbose:
-                                print 'Trello: ' + short_sha + ' marks beginning of pushed commits, stopping there'
+                                print('Trello: ' + short_sha + ' marks beginning of pushed commits, stopping there')
                             break
                     else:
                         commits.append(commit)
@@ -130,7 +130,7 @@ class GitTrelloHook(object):
                     if self.strict:
                         return sys.exit(warning)
                     if self.verbose:
-                        print warning
+                        print(warning)
                     continue
 
                 # figure out the full card id
@@ -140,7 +140,7 @@ class GitTrelloHook(object):
                     if self.strict:
                         return sys.exit(warning)
                     if self.verbose:
-                        print warning
+                        print(warning)
                     continue
 
                 # remove previous commit messages on card if force pushed
@@ -170,13 +170,13 @@ class GitTrelloHook(object):
                     if commit_comments:
                         if self.verbose:
                             count = str(len(commit_comments))
-                            print 'Trello: ' + short_sha + ' deleting ' + count + ' previous comment(s) on card #' + card_id
+                            print('Trello: ' + short_sha + ' deleting ' + count + ' previous comment(s) on card #' + card_id)
                         self.client.deleteComments(commit_comments)
                     old_commits_removed.append(card_id)
 
                 # comment on the card
                 if self.verbose:
-                    print 'Trello: ' + short_sha + ' commenting on card #' + card_id
+                    print('Trello: ' + short_sha + ' commenting on card #' + card_id)
                 comment = ''
                 if self.base_url:
                     comment += self.base_url + long_sha + '\n\n'
@@ -186,7 +186,7 @@ class GitTrelloHook(object):
                 # move the card
                 if self.list_id and card['idList'] != self.list_id and not is_wip:
                     if self.verbose:
-                        print 'Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id
+                        print('Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id)
                     self.client.moveCard(card, self.list_id, pos='bottom')
 
                 cards.append(card)
@@ -195,7 +195,7 @@ class GitTrelloHook(object):
             push_remote = git.pushRemote()
             if not self.release_remote or push_remote == self.release_remote:
                 if self.verbose:
-                    print 'Trello: moving cards to new release list'
+                    print('Trello: moving cards to new release list')
                 now = datetime.datetime.now()
                 release_name = now.strftime(self.release_name)
                 release_list = self.client.createList(release_name, self.list_id)
