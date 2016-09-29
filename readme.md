@@ -37,6 +37,14 @@ Then replace all of the arguments in the hook with your own values.
 The specifics of how to get the required values are in the readme of
 [the Trello submodule](https://github.com/bdoms/trello).
 
+## Use
+
+Whenever you commit, begin your message with `[#123]` where the number is the card ID in Trello.
+If you want to signify a work in progress commit, then append WIP like so: `[#123 WIP]`.
+WIP commits operate just like usual by commenting with a link to the changeset,
+however, they do not move the card to another list. Assuming you have lists like "Doing" and "Done",
+this keeps cards with WIP commits on the "Doing" list.
+
 ### Optional Arguments
 
 #### `list_id`
