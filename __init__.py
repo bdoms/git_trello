@@ -95,6 +95,10 @@ class GitTrelloHook(object):
             if not self.branch:
                 commits = []
                 for i, commit in enumerate(all_commits):
+                    if ' ' not in commit:
+                        print('Trello: WARNING - unable to parse commit: "' + commit + '"')
+                        continue
+
                     long_sha, short_sha = commit.split(' ')
 
                     # list remote branches that contain this commit
