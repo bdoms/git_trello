@@ -6,7 +6,7 @@ from .lib.trello import Trello
 from .lib import git
 
 REPO = re.compile(':(.+)\.git')
-CARD = re.compile(r'\[#(?P<card_id>\d{1,4})?\s?(?P<action>wip)\]', re.I)
+CARD = re.compile(r'\[#(?P<card_id>\d{1,9})\s?(?P<action>wip)?\]', re.I)
 
 
 class GitTrelloHook(object):
