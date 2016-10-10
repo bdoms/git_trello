@@ -153,7 +153,7 @@ class GitTrelloHook(object):
                     commit_comments = []
                     for comment in comments:
                         text = comment['data']['text']
-                        if text.startswith(self.base_url) and '[#' + card_id + ']' in text:
+                        if self.base_url and text.startswith(self.base_url) and '[#' + card_id + ']' in text:
                             # we don't want to remove comments that contain valid commits
                             # they won't get re-added as git is smart enough to not include those commits here
                             # so parse out the sha and check to see if it exists anywhere before deleting this comment
