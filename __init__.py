@@ -49,7 +49,7 @@ class GitTrelloHook(object):
 
     def pre_push(self):
 
-        current_branch = git.currentBranch()
+        current_branch = git.pushBranch()
         if self.branch and current_branch != self.branch:
             if self.verbose:
                 print('Trello: pushing unspecified branch skips modifying cards')
