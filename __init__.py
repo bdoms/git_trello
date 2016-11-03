@@ -6,7 +6,8 @@ from .lib.trello import Trello
 from .lib import git
 
 REPO = re.compile(':(.+)\.git')
-CARD = re.compile(r'\[#(?P<card_id>\d{1,9})\s?(?P<action>wip)?\]', re.I)
+META = re.compile(r'^\[(?P<cards>(#\d+\s?)+)\s?(?P<action>wip)?\]', re.I)
+CARD = re.compile(r'(?P<card_id>\d+)')
 
 
 class GitTrelloHook(object):
@@ -123,13 +124,16 @@ class GitTrelloHook(object):
 
                 body = git.commitBody(long_sha)
 
-                card_id = ''
+                card_ids = []
                 is_wip = False
-                result = CARD.search(body)
+                result = META.search(body)
                 if result:
-                    card_id = result.group('card_id')
-                    is_wip = result.group('action') is not None
-                if not card_id:
+                    cards_group = result.group('cards')
+                    if cards_group:
+                        card_ids = CARD.findall(cards_group)
+                    action = result.group('action')
+                    is_wip = action is not None and action.lower() == 'wip'
+                if not card_ids:
                     warning = 'Trello: ' + short_sha + ' no card number'
                     if self.strict:
                         return sys.exit(warning)
@@ -137,63 +141,64 @@ class GitTrelloHook(object):
                         print(warning)
                     continue
 
-                # figure out the full card id
-                card = self.client.getCard(card_id)
-                if not card:
-                    warning = 'Trello: ' + short_sha + ' cannot find card #' + card_id
-                    if self.strict:
-                        return sys.exit(warning)
-                    if self.verbose:
-                        print(warning)
-                    continue
-
-                # remove previous commit messages on card if force pushed
-                if forced and self.force_override and card_id not in old_commits_removed:
-                    comments = self.client.getComments(card)
-                    commit_comments = []
-                    for comment in comments:
-                        text = comment['data']['text']
-                        if self.base_url and text.startswith(self.base_url) and '[#' + card_id + ']' in text:
-                            # we don't want to remove comments that contain valid commits
-                            # they won't get re-added as git is smart enough to not include those commits here
-                            # so parse out the sha and check to see if it exists anywhere before deleting this comment
-                            old_sha = text.split('\n')[0].rsplit('/', 1)[1]
-                            local_branches = git.branchesWithCommit(old_sha)
-                            if not local_branches:
-                                # even if it doesn't exist locally it's possible someone else added it on another branch
-                                remote_branches = git.branchesWithCommit(old_sha, remote=True)
-                                if not remote_branches:
-                                    commit_comments.append(comment)
-                                elif len(remote_branches) == 1:
-                                    # if the only remote branch is this one then the sha will disappear as soon as we push
-                                    remotes = git.remotes()
-                                    for remote in remotes:
-                                        if remote + '/' + current_branch in remote_branches:
-                                            commit_comments.append(comment)
-                                            break
-                    if commit_comments:
+                for card_id in card_ids:
+                    # figure out the full card id
+                    card = self.client.getCard(card_id)
+                    if not card:
+                        warning = 'Trello: ' + short_sha + ' cannot find card #' + card_id
+                        if self.strict:
+                            return sys.exit(warning)
                         if self.verbose:
-                            count = str(len(commit_comments))
-                            print('Trello: ' + short_sha + ' deleting ' + count + ' previous comment(s) on card #' + card_id)
-                        self.client.deleteComments(commit_comments)
-                    old_commits_removed.append(card_id)
+                            print(warning)
+                        continue
 
-                # comment on the card
-                if self.verbose:
-                    print('Trello: ' + short_sha + ' commenting on card #' + card_id)
-                comment = ''
-                if self.base_url:
-                    comment += self.base_url + long_sha + '\n\n'
-                comment += body
-                self.client.addComment(card, comment)
+                    # remove previous commit messages on card if force pushed
+                    if forced and self.force_override and card_id not in old_commits_removed:
+                        comments = self.client.getComments(card)
+                        commit_comments = []
+                        for comment in comments:
+                            text = comment['data']['text']
+                            if self.base_url and text.startswith(self.base_url) and '[#' + card_id + ']' in text:
+                                # we don't want to remove comments that contain valid commits
+                                # they won't get re-added as git is smart enough to not include those commits here
+                                # so parse out the sha and check to see if it exists anywhere before deleting this comment
+                                old_sha = text.split('\n')[0].rsplit('/', 1)[1]
+                                local_branches = git.branchesWithCommit(old_sha)
+                                if not local_branches:
+                                    # even if it doesn't exist locally it's possible someone else added it on another branch
+                                    remote_branches = git.branchesWithCommit(old_sha, remote=True)
+                                    if not remote_branches:
+                                        commit_comments.append(comment)
+                                    elif len(remote_branches) == 1:
+                                        # if the only remote branch is this one then the sha will disappear as soon as we push
+                                        remotes = git.remotes()
+                                        for remote in remotes:
+                                            if remote + '/' + current_branch in remote_branches:
+                                                commit_comments.append(comment)
+                                                break
+                        if commit_comments:
+                            if self.verbose:
+                                count = str(len(commit_comments))
+                                print('Trello: ' + short_sha + ' deleting ' + count + ' previous comment(s) on card #' + card_id)
+                            self.client.deleteComments(commit_comments)
+                        old_commits_removed.append(card_id)
 
-                # move the card
-                if self.list_id and card['idList'] != self.list_id and not is_wip:
+                    # comment on the card
                     if self.verbose:
-                        print('Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id)
-                    self.client.moveCard(card, self.list_id, pos='bottom')
+                        print('Trello: ' + short_sha + ' commenting on card #' + card_id)
+                    comment = ''
+                    if self.base_url:
+                        comment += self.base_url + long_sha + '\n\n'
+                    comment += body
+                    self.client.addComment(card, comment)
 
-                cards.append(card)
+                    # move the card
+                    if self.list_id and card['idList'] != self.list_id and not is_wip:
+                        if self.verbose:
+                            print('Trello: ' + short_sha + ' moving card #' + card_id + ' to list ' + self.list_id)
+                        self.client.moveCard(card, self.list_id, pos='bottom')
+
+                    cards.append(card)
 
         if self.release_branch and current_branch == self.release_branch:
             push_remote = git.pushRemote()
