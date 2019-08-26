@@ -43,13 +43,18 @@ class GitTrelloHook(object):
         # remote_name = sys.argv[1]
         remote_url = sys.argv[2]
 
-        # github is the only supported remote for adding a link to the commit
+        # only a few supported remote hosts for adding a link to the commit
         # but this would be trivial to extend to others
         if remote_url.startswith('git@github.com:'):
             # git@github.com:user/repo.git
             result = REPO.search(remote_url)
             user_repo = result.group(1)
             self.base_url = 'https://github.com/' + user_repo + '/commit/'
+        elif remote_url.startswith('git@gitlab.com'):
+            # git@gitlab.com:user/repo.git
+            result = REPO.search(remote_url)
+            user_repo = result.group(1)
+            self.base_url = 'https://gitlab.com/' + user_repo + '/commit/'
 
     def pre_push(self):
 
