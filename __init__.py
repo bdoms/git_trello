@@ -5,7 +5,7 @@ import sys
 from .lib.trello import Trello
 from .lib import git
 
-REPO = re.compile(':(.+)\.git')
+REPO = re.compile(r':(.+)\.git')
 META = re.compile(r'^\[(?P<cards>(#\d+\s?)+)\s?(?P<action>wip)?\]', re.I)
 CARD = re.compile(r'(?P<card_id>\d+)')
 
@@ -13,15 +13,18 @@ CARD = re.compile(r'(?P<card_id>\d+)')
 class GitTrelloHook(object):
 
     def __init__(self, api_key='', oauth_token='', board_id='', list_id='',
-        branch='', release_branch='', release_remote='',
-        release_name='%Y-%m-%d Release', verbose=False, strict=False,
-        force_override=False, exhaustive=False):
+            branch='', release_branch='', release_remote='',
+            release_name='%Y-%m-%d Release', verbose=False, strict=False,
+            force_override=False, exhaustive=False):
 
         # NOTE that although required these are not positional arguments so that someone can glance at the hook file
         #      and know exactly what each thing is because it's a named argument
-        if not api_key: sys.exit('Trello: api_key is required - aborting.')
-        if not oauth_token: sys.exit('Trello: oauth_token is required - aborting.')
-        if not board_id: sys.exit('Trello: board_id is required - aborting.')
+        if not api_key:
+            sys.exit('Trello: api_key is required - aborting.')
+        if not oauth_token:
+            sys.exit('Trello: oauth_token is required - aborting.')
+        if not board_id:
+            sys.exit('Trello: board_id is required - aborting.')
 
         self.client = Trello(api_key, oauth_token, board_id)
         self.list_id = list_id
@@ -36,8 +39,8 @@ class GitTrelloHook(object):
         self.base_url = ''
 
         # command line arguments;
-        #hook_path = sys.arg[0]
-        #remote_name = sys.argv[1]
+        # hook_path = sys.arg[0]
+        # remote_name = sys.argv[1]
         remote_url = sys.argv[2]
 
         # github is the only supported remote for adding a link to the commit
@@ -67,7 +70,8 @@ class GitTrelloHook(object):
         # stuff comes in on stdin, see http://git-scm.com/docs/githooks#_pre-push
         # of the form: <local ref> SP <local sha1> SP <remote ref> SP <remote sha1> LF
         # example: refs/heads/master 67890 refs/heads/foreign 12345
-        # also note "If the foreign ref does not yet exist the <remote SHA-1> will be 0" (in fact 40 zeros for the full sha)
+        # also note "If the foreign ref does not yet exist the <remote SHA-1> will be 0"
+        # (in fact 40 zeros for the full sha)
         z40 = '0' * 40
 
         # list of card ID's that had old commits removed when force pushing
@@ -161,16 +165,19 @@ class GitTrelloHook(object):
                             if self.base_url and text.startswith(self.base_url) and '[#' + card_id + ']' in text:
                                 # we don't want to remove comments that contain valid commits
                                 # they won't get re-added as git is smart enough to not include those commits here
-                                # so parse out the sha and check to see if it exists anywhere before deleting this comment
+                                # so parse out the sha and check to see
+                                # if it exists anywhere before deleting this comment
                                 old_sha = text.split('\n')[0].rsplit('/', 1)[1]
                                 local_branches = git.branchesWithCommit(old_sha)
                                 if not local_branches:
-                                    # even if it doesn't exist locally it's possible someone else added it on another branch
+                                    # even if it doesn't exist locally it's possible
+                                    # someone else added it on another branch
                                     remote_branches = git.branchesWithCommit(old_sha, remote=True)
                                     if not remote_branches:
                                         commit_comments.append(comment)
                                     elif len(remote_branches) == 1:
-                                        # if the only remote branch is this one then the sha will disappear as soon as we push
+                                        # if the only remote branch is this one
+                                        # then the sha will disappear as soon as we push
                                         remotes = git.remotes()
                                         for remote in remotes:
                                             if remote + '/' + current_branch in remote_branches:
@@ -179,7 +186,9 @@ class GitTrelloHook(object):
                         if commit_comments:
                             if self.verbose:
                                 count = str(len(commit_comments))
-                                print('Trello: ' + short_sha + ' deleting ' + count + ' previous comment(s) on card #' + card_id)
+                                msg = 'Trello: ' + short_sha + ' deleting ' + count
+                                msg += ' previous comment(s) on card #' + card_id
+                                print(msg)
                             self.client.deleteComments(commit_comments)
                         old_commits_removed.append(card_id)
 
